@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geincos Academy | Mi Espacio</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        :root { 
+            --primary: #4338ca; 
+            --primary-light: #6366f1; 
+            --accent: #f59e0b; 
+            --surface: #ffffff; 
+            --bg-body: #f3f4f6; 
+            --text-main: #111827; 
+            --text-light: #6b7280; 
+            --success: #10b981; 
+            --danger: #ef4444; 
+            --shadow-card: 0 10px 15px -3px rgba(0, 0, 0, 0.1); 
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { display: flex; height: 100vh; background-color: var(--bg-body); color: var(--text-main); overflow: hidden; }
+        
+        /* --- SIDEBAR --- */
+        .sidebar { width: 280px; background: var(--surface); display: flex; flex-direction: column; padding: 30px 20px; border-right: 1px solid #e5e7eb; z-index: 50; flex-shrink: 0; }
+        .brand { display: flex; align-items: center; gap: 15px; margin-bottom: 40px; padding: 0 10px; }
+        .brand i { font-size: 1.8rem; color: var(--primary); } 
+        .brand span { font-size: 1.4rem; font-weight: 800; color: var(--primary); letter-spacing: -0.5px; }
+        
+        .menu-list { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+        .menu-item { display: flex; align-items: center; gap: 15px; padding: 14px 20px; color: var(--text-light); border-radius: 12px; cursor: pointer; transition: all 0.2s ease; font-weight: 500; font-size: 0.95rem; text-decoration: none; }
+        .menu-item:hover { background-color: #eef2ff; color: var(--primary); }
+        .menu-item.active { background: linear-gradient(90deg, var(--primary), var(--primary-light)); color: white; box-shadow: 0 4px 12px rgba(67, 56, 202, 0.3); }
+        .menu-item i { width: 20px; text-align: center; font-size: 1.1rem; }
+        
+        .logout-btn { margin-top: auto; color: var(--danger); background: #fef2f2; border: 1px solid #fee2e2; }
+        .logout-btn:hover { background: var(--danger); color: white; border-color: var(--danger); }
+        .menu-badge { background: #ef4444; color: white; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-left: auto; display: none; box-shadow: 0 2px 5px rgba(0,0,0,0.2); animation: popIn 0.3s ease; }
+
+        /* --- MAIN CONTENT --- */
+        .main-content { flex: 1; overflow-y: auto; position: relative; display: flex; flex-direction: column; }
+        .hero-section { background: linear-gradient(135deg, var(--primary) 0%, #2563eb 100%); padding: 40px 50px 80px 50px; color: white; border-bottom-right-radius: 40px; box-shadow: 0 10px 30px rgba(37, 99, 235, 0.15); flex-shrink: 0; }
+        .hero-section h1 { font-size: 2rem; font-weight: 700; margin-bottom: 5px; }
+        .hero-section p { font-size: 1rem; opacity: 0.9; }
+        .user-pill { background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; margin-left: 10px; border: 1px solid rgba(255,255,255,0.3); }
+        
+        .content-wrapper { padding: 0 50px 50px; margin-top: -50px; flex: 1; position: relative; z-index: 10; }
+        .content-section { display: none; animation: fadeIn 0.4s ease; }
+        .content-section.active { display: block; }
+        @keyframes fadeIn { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+
+        /* STATS */
+        .stats-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 20px; border-radius: 16px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 15px; }
+        .stat-icon { width: 50px; height: 50px; background: #e0e7ff; color: var(--primary); border-radius: 14px; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; }
+
+        /* --- MÓDULOS (CARPETAS) --- */
+        .modules-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; }
+        .module-card { background: white; border-radius: 20px; box-shadow: var(--shadow-card); transition: all 0.3s; cursor: pointer; border: 1px solid rgba(0,0,0,0.03); overflow: hidden; display: flex; flex-direction: column; }
+        .module-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.1); }
+        .module-banner { height: 100px; background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 2.5rem; position: relative; }
+        .module-body { padding: 20px; flex: 1; display: flex; flex-direction: column; }
+        .module-title-card { font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 5px; }
+        .module-meta { font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px; }
+        .progress-track { width: 100%; height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; margin-top: auto; }
+        .progress-fill { height: 100%; background: var(--success); width: 0%; transition: width 1s ease-in-out; }
+        .progress-text { font-size: 0.75rem; color: var(--text-light); font-weight: 600; margin-top: 5px; text-align: right; }
+
+        /* --- VISTA DETALLE MÓDULO (CURSOS) --- */
+        .module-detail-view { display: none; }
+        .module-detail-header { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; }
+        .btn-back { background: white; border: none; width: 40px; height: 40px; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.05); cursor: pointer; color: var(--text-main); display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .btn-back:hover { transform: translateX(-3px); color: var(--primary); }
+        
+        .courses-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
+        .course-card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.02); transition: all 0.3s; border: 1px solid rgba(0,0,0,0.03); display: flex; flex-direction: column; }
+        .course-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+        .thumb-wrapper { height: 150px; background: #f1f5f9; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; font-size: 3rem; color: var(--primary); }
+        .thumb-img { width: 100%; height: 100%; object-fit: cover; }
+        .type-badge { position: absolute; top: 10px; right: 10px; padding: 4px 10px; border-radius: 8px; font-size: 0.7rem; font-weight: 700; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .card-info { padding: 20px; flex: 1; display: flex; flex-direction: column; }
+        .card-title { font-size: 1rem; font-weight: 700; margin-bottom: 15px; color: var(--text-main); line-height: 1.4; }
+        
+        /* BOTONES DINÁMICOS */
+        .btn-start { width: 100%; padding: 12px; background: var(--text-main); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: 0.3s; margin-top: auto; font-size: 0.9rem; }
+        .btn-start:hover { background: var(--primary); }
+        .btn-completed { width: 100%; padding: 12px; background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; border-radius: 10px; font-weight: 600; cursor: default; margin-top: auto; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .btn-retest { width: 100%; padding: 12px; background: #fbbf24; color: #78350f; border: 1px solid #fcd34d; border-radius: 10px; cursor: pointer; font-weight: 700; margin-top: auto; font-size: 0.9rem; animation: pulse 2s infinite; }
+
+        /* --- CERTIFICADOS --- */
+        .cert-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; }
+        .cert-card { background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.05); transition: 0.3s; cursor: pointer; border: 1px solid #e5e7eb; position: relative; }
+        .cert-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(251, 191, 36, 0.2); border-color: var(--accent); }
+        .cert-top { height: 160px; background: linear-gradient(135deg, #1e293b, #0f172a); display: flex; justify-content: center; align-items: center; color: var(--accent); font-size: 4rem; }
+        .cert-body { padding: 20px; text-align: center; }
+        .btn-download { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 20px; width: 100%; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top:10px; transition:0.2s; }
+        .btn-download:hover { background: var(--primary-light); }
+
+        /* --- RESULTADOS --- */
+        .result-card { background: white; border-radius: 16px; padding: 20px; box-shadow: var(--shadow-card); transition: 0.3s; display: flex; justify-content: space-between; align-items: center; border-left: 6px solid #e5e7eb; position: relative; overflow: hidden; margin-bottom: 15px; }
+        .result-card.pass { border-left-color: var(--success); } .result-card.fail { border-left-color: var(--danger); }
+        .res-info h4 { margin: 0 0 5px 0; font-size: 1.1rem; color: var(--text-main); }
+        .res-score { text-align: center; background: #f9fafb; padding: 10px 20px; border-radius: 12px; min-width: 100px; }
+        .btn-detail { background: transparent; border: 2px solid #e5e7eb; color: var(--text-main); padding: 8px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+        .btn-detail:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        .res-detail-list { display: flex; flex-direction: column; gap: 15px; padding: 10px; }
+        .res-item { background: white; padding: 15px; border-radius: 12px; border: 1px solid #eee; display: flex; gap: 15px; align-items: flex-start; }
+        .res-icon { font-size: 1.5rem; margin-top: 2px; }
+        .res-correct { color: var(--success); background: #dcfce7; padding: 10px; border-radius: 50%; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
+        .res-incorrect { color: var(--danger); background: #fee2e2; padding: 10px; border-radius: 50%; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
+
+        /* --- SIMULADORES, RANKING, CHAT --- */
+        .sim-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 30px; }
+        .sim-card { background: white; border-radius: 20px; overflow: hidden; box-shadow: var(--shadow-card); transition: all 0.3s; border: 1px solid rgba(0,0,0,0.03); display: flex; flex-direction: column; cursor: default; }
+        .sim-card:hover { transform: translateY(-8px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        .sim-header-bg { height: 140px; background: linear-gradient(135deg, #4f46e5 0%, #818cf8 100%); display: flex; align-items: center; justify-content: center; color: white; }
+        .sim-body { padding: 25px; flex: 1; display: flex; flex-direction: column; }
+        .btn-sim-play { width: 100%; padding: 14px; background: #1e293b; color: white; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+
+        .ranking-wrapper { max-width: 850px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+        .rank-row { display: flex; align-items: center; background: white; padding: 15px 25px; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); border: 1px solid #f1f5f9; transition: transform 0.2s; position: relative; overflow: hidden; }
+        .rank-row:hover { transform: scale(1.01); box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        .rank-row.me { border: 2px solid var(--primary); background: #eef2ff; }
+        .rank-pos { font-size: 1.4rem; font-weight: 800; width: 60px; text-align: center; color: #cbd5e1; }
+        .rank-avatar-img { width: 48px; height: 48px; border-radius: 50%; background: #e0e7ff; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--primary); margin: 0 20px; font-size: 1.1rem; }
+        .rank-info-box { flex: 1; }
+        .rank-points-badge { font-weight: 800; color: var(--primary); font-size: 1.2rem; background: rgba(67, 56, 202, 0.08); padding: 6px 16px; border-radius: 12px; }
+
+        .chat-full-container { background: white; border-radius: 20px; box-shadow: var(--shadow-card); height: 75vh; display: flex; overflow: hidden; border: 1px solid #e5e7eb; }
+        .chat-sidebar-list { width: 280px; background: #fff; border-right: 1px solid #f3f4f6; display: flex; flex-direction: column; }
+        .chat-list-header { padding: 20px; border-bottom: 1px solid #f3f4f6; font-weight: 700; font-size: 1rem; }
+        .chat-items { flex: 1; overflow-y: auto; padding: 10px; }
+        .chat-contact { padding: 12px 15px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: 0.2s; margin-bottom: 5px; }
+        .chat-contact:hover { background: #f8fafc; } .chat-contact.active { background: #eef2ff; }
+        .contact-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.1rem; color: white; font-weight: 700; flex-shrink: 0; }
+        .avatar-admin { background: linear-gradient(135deg, #ef4444, #f87171); } .avatar-group { background: linear-gradient(135deg, #3b82f6, #60a5fa); }
+        .unread-count { background: #ef4444; color: white; font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 10px; margin-left: auto; }
+        .chat-area-main { flex: 1; display: flex; flex-direction: column; background: #f8fafc; }
+        .chat-main-header { padding: 15px 25px; background: white; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; gap: 15px; font-weight: 700; color: var(--text-main); height: 60px; }
+        .chat-messages-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .msg-row { display: flex; width: 100%; margin-bottom: 5px; flex-direction: column; }
+        .msg-row.me { align-items: flex-end; } .msg-row.other { align-items: flex-start; }
+        .msg-bubble { max-width: 70%; padding: 10px 15px; border-radius: 14px; font-size: 0.9rem; line-height: 1.4; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .msg-row.me .msg-bubble { background: var(--primary); color: white; border-bottom-right-radius: 2px; }
+        .msg-row.other .msg-bubble { background: white; color: var(--text-main); border: 1px solid #e5e7eb; border-bottom-left-radius: 2px; }
+        .msg-row.admin .msg-bubble { background: #333; color: white; border: none; }
+        .chat-input-box { padding: 15px; background: white; border-top: 1px solid #f3f4f6; display: flex; gap: 10px; align-items: center; }
+        .chat-input-field { flex: 1; background: #f8fafc; border: 1px solid #e5e7eb; padding: 10px 20px; border-radius: 25px; outline: none; font-size: 0.9rem; transition: 0.2s; }
+        .btn-send-msg { width: 40px; height: 40px; background: var(--primary); color: white; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+        /* --- MODALES --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(17, 24, 39, 0.95); z-index: 2000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+        .modal-window { width: 95%; max-width: 1000px; height: 90vh; background: white; border-radius: 20px; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        .modal-top { padding: 15px 25px; background: var(--surface); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
+        .modal-content-area { flex: 1; overflow-y: auto; position: relative; background: #000; display: flex; flex-direction: column; }
+        .modal-content-area.game-mode { background: #f8fafc; display: block; padding: 40px; }
+        .modal-bottom { padding: 15px 25px; border-top: 1px solid #e5e7eb; background: white; display: flex; justify-content: flex-end; flex-shrink: 0; }
+        .video-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; background: black; }
+        .video-responsive { width: 100%; height: 100%; max-width: 1200px; aspect-ratio: 16/9; }
+        .video-responsive iframe { width: 100%; height: 100%; border: none; }
+        
+        .exam-container { max-width: 800px; margin: 0 auto; padding-bottom: 50px; }
+        .exam-card { background: white; border-radius: 16px; padding: 25px; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid #f1f5f9; border-left: 5px solid var(--primary); }
+        .exam-question { font-size: 1.05rem; font-weight: 600; color: var(--text-main); margin-bottom: 20px; line-height: 1.5; }
+        .exam-options { display: flex; flex-direction: column; gap: 10px; }
+        .exam-option { display: flex; align-items: center; padding: 12px 15px; border: 2px solid #f1f5f9; border-radius: 12px; cursor: pointer; transition: all 0.2s; background: white; }
+        .exam-option:hover { border-color: var(--primary-light); background: #eef2ff; }
+        .exam-option input { margin-right: 12px; accent-color: var(--primary); width: 18px; height: 18px; }
+        .btn-exam { padding: 10px 25px; background: #e5e7eb; color: #6b7280; border: none; border-radius: 10px; font-weight: 600; cursor: not-allowed; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; transition: 0.3s; }
+        .btn-exam.ready { background: var(--primary); color: white; cursor: pointer; animation: pulse 2s infinite; }
+        
+        .phone-container { width: 340px; background: white; border: 14px solid #1f2937; border-radius: 40px; height: 700px; margin: 0 auto; display: flex; flex-direction: column; overflow: hidden; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+        .client-msg { background: #f3f4f6; padding: 15px; margin: 20px; border-radius: 15px; font-size: 0.95rem; line-height: 1.5; color: var(--text-main); }
+        .option-btn { width: 100%; padding: 18px 20px; background: white; border-bottom: 1px solid #f3f4f6; cursor: pointer; text-align: left; font-size: 0.95rem; transition: 0.2s; font-weight: 500; color: var(--text-main); }
+        
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(67, 56, 202, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(67, 56, 202, 0); } 100% { box-shadow: 0 0 0 0 rgba(67, 56, 202, 0); } }
+        @keyframes popIn { from{transform:scale(0);} to{transform:scale(1);} }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="brand"><i class="fas fa-graduation-cap"></i> <span>Academy</span></div>
+        <div class="menu-list">
+            <div class="menu-item active" onclick="nav('home', this)"><i class="fas fa-layer-group"></i> Mi Aprendizaje</div>
+            <div class="menu-item" onclick="nav('results', this); loadMyResults()"><i class="fas fa-clipboard-list"></i> Resultados</div>
+            <div class="menu-item" onclick="nav('certs', this); loadCerts()"><i class="fas fa-certificate"></i> Mis Certificados</div>
+            <div class="menu-item" onclick="nav('messages', this)"><i class="fas fa-comment-alt"></i> Mensajes <div class="menu-badge" id="menuChatBadge">0</div></div>
+            <div class="menu-item" onclick="nav('simulador', this)"><i class="fas fa-gamepad"></i> Entrenamiento</div>
+            <div class="menu-item" onclick="nav('duels', this)"><i class="fas fa-bolt"></i> Duelos PvP</div>
+            <div class="menu-item" onclick="nav('ranking', this)"><i class="fas fa-trophy"></i> Tabla de Líderes</div>
+        </div>
+        <div class="menu-item logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</div>
+    </div>
+
+    <div class="main-content">
+        <div class="hero-section">
+            <h1>Hola, <span id="nombreUsuario">...</span> 👋</h1>
+            <p>Bienvenido a tu espacio de entrenamiento. <span id="groupBadge" class="user-pill">...</span></p>
+        </div>
+        <div class="content-wrapper">
+            
+            <div id="home" class="content-section active">
+                <div class="stats-container">
+                    <div class="stat-card"><div class="stat-icon icon-blue"><i class="fas fa-book-open"></i></div><div class="stat-info"><h4>Asignados</h4><h2 id="countCursos">0</h2></div></div>
+                    <div class="stat-card"><div class="stat-icon icon-green"><i class="fas fa-chart-pie"></i></div><div class="stat-info"><h4>Promedio</h4><h2 id="myAverage">0.0</h2></div></div>
+                    <div class="stat-card"><div class="stat-icon icon-gold"><i class="fas fa-crown"></i></div><div class="stat-info"><h4>Racha</h4><h2>3 Días</h2></div></div>
+                </div>
+                
+                <div id="modulesGrid" class="modules-grid">Cargando...</div>
+                
+                <div id="moduleDetailContainer" class="module-detail-view">
+                    <div class="module-detail-header"><button class="btn-back" onclick="showModules()"><i class="fas fa-arrow-left"></i></button><h2 id="detailModuleTitle" style="margin:0">Módulo</h2></div>
+                    <div id="coursesGrid" class="courses-grid"></div>
+                </div>
+            </div>
+
+            <div id="results" class="content-section">
+                <h2 style="margin-bottom:25px; color:var(--text-main)">📝 Historial de Evaluaciones</h2>
+                <div id="resultsContainer" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;"></div>
+            </div>
+
+            <div id="certs" class="content-section">
+                <h2 style="margin-bottom:25px; color:var(--primary)">🏆 Mis Logros Certificados</h2>
+                <div id="certGrid" class="cert-grid"></div>
+            </div>
+            
+            <div id="simulador" class="content-section">
+                <h2 style="margin-bottom:25px; color:var(--text-main)">Entrenamiento Práctico</h2>
+                <div id="simListContainer" class="sim-grid"></div>
+            </div>
+
+            <div id="duels" class="content-section">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px"><h2>Desafíos PvP</h2><button class="btn-start" style="width:auto" onclick="createDuel()"><i class="fas fa-plus"></i> Nuevo Duelo</button></div>
+                <div id="duelsList"></div>
+            </div>
+             
+             <div id="ranking" class="content-section">
+                <h2>Tabla de Líderes - <span id="rankGroupTitle"></span></h2>
+                <div id="rankingContainer" class="ranking-wrapper" style="margin-top:20px;"></div>
+            </div>
+
+            <div id="messages" class="content-section">
+                <h2 style="margin-bottom:20px">Centro de Mensajes</h2>
+                <div class="chat-full-container">
+                    <div class="chat-sidebar-list">
+                        <div class="chat-list-header">Chats</div>
+                        <div class="chat-items">
+                            <div class="chat-contact" id="contact-admin" onclick="switchChat('admin', this)">
+                                <div class="contact-avatar avatar-admin"><i class="fas fa-headset"></i></div><div class="contact-info"><div>Soporte Técnico</div><div>Administrador</div></div><div class="unread-count" id="badge-admin">0</div>
+                            </div>
+                            <div class="chat-contact" id="contact-group" onclick="switchChat('group', this)">
+                                <div class="contact-avatar avatar-group"><i class="fas fa-users"></i></div><div class="contact-info"><div>Equipo <span id="lblGroup">G-XX</span></div><div>Chat Grupal</div></div><div class="unread-count" id="badge-group">0</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-area-main">
+                        <div class="chat-main-header"><div class="contact-avatar avatar-admin" id="headerAvatar" style="width:40px; height:40px; font-size:1rem;">?</div><span id="headerTitle">Selecciona un chat</span></div>
+                        <div class="chat-messages-box" id="chatMessagesBox"><div style="text-align:center; margin-top:50px; color:#9ca3af;"><i class="far fa-comments" style="font-size:3rem; margin-bottom:10px;"></i><p>Tus conversaciones aparecerán aquí.</p></div></div>
+                        <div class="chat-input-box"><input type="text" id="mainChatInput" class="chat-input-field" placeholder="Escribe tu mensaje..." onkeypress="if(event.key==='Enter') sendMainChat()"><button class="btn-send-msg" onclick="sendMainChat()"><i class="fas fa-paper-plane"></i></button></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="mainModal">
+        <div class="modal-window">
+            <div class="modal-top"><div class="modal-title" id="modalTitle">Curso</div><i class="fas fa-times" onclick="closeModal()" style="font-size:1.5rem; cursor:pointer"></i></div>
+            <div class="modal-content-area" id="playerArea"></div>
+            <div class="modal-bottom" id="videoFooter" style="display:none; padding:15px; border-top:1px solid #eee; justify-content:flex-end; background:white;">
+                <button id="btnExamAction" class="btn-exam" onclick="startExam()"><i class="fas fa-lock"></i> Ver video...</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal-overlay" id="modalPhone"><div class="phone-container"><div style="background:#222; color:white; padding:15px; display:flex; justify-content:space-between"><span>Simulador</span><button onclick="closeModal()" style="color:white; background:none; border:none">&times;</button></div><div id="simContent" style="flex:1; overflow-y:auto; background:#ece5dd; display:flex; flex-direction:column"></div><div id="simOpts" style="background:white; border-top:1px solid #ddd"></div></div></div>
+
+    <script>
+        const SB_URL = 'https://xgvfcmadsprjyljtpooo.supabase.co';
+        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhndmZjbWFkc3ByanlsanRwb29vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY1ODMxNjAsImV4cCI6MjA4MjE1OTE2MH0.XYBbKFE17PfyYMn2SNL5UJrCQmDRbimTQO0jpbX1Zd0';
+        const sbClient = supabase.createClient(SB_URL, SB_KEY);
+        
+        const user = localStorage.getItem('usuarioActual');
+        const userGroup = localStorage.getItem('usuarioGrupo') || 'General';
+        if(!user) window.location.href='index.html';
+        
+        document.getElementById('nombreUsuario').innerText = user;
+        document.getElementById('groupBadge').innerText = userGroup;
+        document.getElementById('rankGroupTitle').innerText = userGroup;
+        document.getElementById('lblGroup').innerText = userGroup;
+
+        let simData=[], simStep=0, currentCourse='';
+        let activeChatType = null; 
+        let messagesGroup = [], messagesAdmin = [], unreadAdmin = 0, unreadGroup = 0;
+        let timerInterval;
+        const audioNotif = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        let groupedModules = {}, myEvaluations = [];
+
+        window.onload = () => { loadCourses(); loadRanking(); loadDuels(); initChatSystem(); setInterval(checkNewMessagesBackground, 3000); };
+
+        function nav(id, el) { 
+            document.querySelectorAll('.content-section').forEach(s=>s.classList.remove('active')); 
+            document.getElementById(id).classList.add('active'); 
+            document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('active')); 
+            el.classList.add('active'); 
+            if(id === 'messages' && activeChatType) { scrollToBottom(); }
+        }
+        function logout() { localStorage.clear(); window.location.href='index.html'; }
+        function closeModal() { document.querySelectorAll('.modal-overlay').forEach(m=>m.style.display='none'); document.getElementById('playerArea').innerHTML=''; clearInterval(timerInterval); }
+
+        // --- SISTEMA CHAT ---
+        async function initChatSystem() { await loadAllHistory(); updateBadges(); sbClient.channel('user-main-listener').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat' }, payload => { handleIncoming(payload.new); }).subscribe(); }
+        async function loadAllHistory() { const { data: gMsgs } = await sbClient.from('chat').select('*').eq('destinatario', userGroup).order('created_at', {ascending:true}).limit(50); if(gMsgs) messagesGroup = gMsgs; const { data: aMsgs } = await sbClient.from('chat').select('*').or(`and(remitente.eq.${user},destinatario.eq.Admin),and(remitente.eq.Admin,destinatario.eq.${user})`).order('created_at', {ascending:true}).limit(50); if(aMsgs) messagesAdmin = aMsgs; }
+        async function checkNewMessagesBackground() { const { count } = await sbClient.from('chat').select('*', { count: 'exact', head: true }).eq('remitente', 'Admin').eq('destinatario', user).eq('leido', false); if (count > 0) { if (activeChatType !== 'admin') { unreadAdmin = count; updateBadges(); } else { fetchLatestMessagesForActiveChat(); } } }
+        function handleIncoming(msg) { let isRelevant = false; let fromMe = msg.remitente === user; if ((msg.remitente === 'Admin' && msg.destinatario === user) || (fromMe && msg.destinatario === 'Admin')) { isRelevant = true; if (!messagesAdmin.some(m => m.id === msg.id)) { messagesAdmin.push(msg); if (activeChatType === 'admin') { renderMessage(msg); if(!fromMe) markAsRead(msg.id); } else if (!fromMe) { unreadAdmin++; notify(); } } } if (msg.destinatario === userGroup) { isRelevant = true; if (!messagesGroup.some(m => m.id === msg.id)) { messagesGroup.push(msg); if (activeChatType === 'group') renderMessage(msg); else if (!fromMe) { unreadGroup++; notify(); } } } if(isRelevant) updateBadges(); }
+        function notify() { audioNotif.play().catch(()=>{}); }
+        function updateBadges() { const bAdmin = document.getElementById('badge-admin'); const bGroup = document.getElementById('badge-group'); if(unreadAdmin > 0) { bAdmin.innerText = unreadAdmin; bAdmin.style.display = 'block'; } else bAdmin.style.display = 'none'; if(unreadGroup > 0) { bGroup.innerText = unreadGroup; bGroup.style.display = 'block'; } else bGroup.style.display = 'none'; const total = unreadAdmin + unreadGroup; const menuBadge = document.getElementById('menuChatBadge'); if(total > 0) { menuBadge.innerText = total; menuBadge.style.display = 'block'; } else menuBadge.style.display = 'none'; }
+        async function switchChat(type, element) { activeChatType = type; document.querySelectorAll('.chat-contact').forEach(c => c.classList.remove('active')); if(element) element.classList.add('active'); const headerTitle = document.getElementById('headerTitle'); const headerAvatar = document.getElementById('headerAvatar'); if(type === 'admin') { headerTitle.innerText = "Soporte Técnico"; headerAvatar.className = "contact-avatar avatar-admin"; headerAvatar.innerHTML = '<i class="fas fa-headset"></i>'; unreadAdmin = 0; } else { headerTitle.innerText = `Equipo ${userGroup}`; headerAvatar.className = "contact-avatar avatar-group"; headerAvatar.innerHTML = '<i class="fas fa-users"></i>'; unreadGroup = 0; } updateBadges(); document.getElementById('chatMessagesBox').innerHTML = '<div style="text-align:center; padding:20px; color:#aaa">Actualizando...</div>'; await fetchLatestMessagesForActiveChat(); renderCurrentChat(); if(type === 'admin') await sbClient.from('chat').update({leido:true}).eq('remitente', 'Admin').eq('destinatario', user); }
+        async function fetchLatestMessagesForActiveChat() { if(activeChatType === 'admin') { const res = await sbClient.from('chat').select('*').or(`and(remitente.eq.${user},destinatario.eq.Admin),and(remitente.eq.Admin,destinatario.eq.${user})`).order('created_at', {ascending:true}).limit(50); if(res.data) messagesAdmin = res.data; } else { const res = await sbClient.from('chat').select('*').eq('destinatario', userGroup).order('created_at', {ascending:true}).limit(50); if(res.data) messagesGroup = res.data; } }
+        function renderCurrentChat() { const box = document.getElementById('chatMessagesBox'); box.innerHTML = ''; const msgs = activeChatType === 'group' ? messagesGroup : messagesAdmin; if(msgs.length === 0) { box.innerHTML = '<div style="text-align:center; margin-top:20px; color:#ccc">No hay mensajes.</div>'; return; } msgs.forEach(m => renderMessage(m)); scrollToBottom(); }
+        function renderMessage(m) { const box = document.getElementById('chatMessagesBox'); const isMe = m.remitente === user; const isAdmin = m.remitente === 'Admin'; let rowClass = isMe ? 'me' : 'other'; let nameLabel = ''; if (!isMe) { if (activeChatType === 'group') nameLabel = `<div class="msg-sender-name">${m.remitente}</div>`; else if (isAdmin) nameLabel = `<div class="msg-sender-name" style="color:var(--danger)">⭐ SOPORTE</div>`; } let bubbleStyle = (isAdmin && !isMe) ? 'style="background:#333; color:white; border:none"' : ''; const time = new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); const html = `<div class="msg-row ${rowClass}">${nameLabel}<div class="msg-bubble" ${bubbleStyle}>${m.mensaje}<span class="msg-time">${time}</span></div></div>`; box.insertAdjacentHTML('beforeend', html); }
+        async function sendMainChat() { const input = document.getElementById('mainChatInput'); const txt = input.value.trim(); if(!txt || !activeChatType) return; input.value = ''; const dest = activeChatType === 'group' ? userGroup : 'Admin'; const tempMsg = { remitente: user, destinatario: dest, mensaje: txt, created_at: new Date().toISOString(), id: 'temp-' + Date.now() }; if(activeChatType === 'group') messagesGroup.push(tempMsg); else messagesAdmin.push(tempMsg); renderMessage(tempMsg); scrollToBottom(); await sbClient.from('chat').insert([{ remitente: user, destinatario: dest, mensaje: txt, leido: false }]); }
+        function scrollToBottom() { const b = document.getElementById('chatMessagesBox'); b.scrollTop = b.scrollHeight; }
+        async function markAsRead(id) { await sbClient.from('chat').update({leido:true}).eq('id', id); }
+
+        // --- CURSOS Y MÓDULOS ---
+        async function loadCourses() {
+            const { data: assign } = await sbClient.from('asignaciones').select('cursos_json').eq('usuario', user).maybeSingle();
+            const { data: uData } = await sbClient.from('usuarios').select('promedio').eq('usuario', user).single();
+            const { data: evals } = await sbClient.from('evaluaciones').select('*').eq('usuario', user).order('created_at', {ascending: true});
+            myEvaluations = evals || [];
+            document.getElementById('myAverage').innerText = uData?.promedio || '0.0';
+            if(!assign) { document.getElementById('modulesGrid').innerHTML='<p>Sin cursos.</p>'; return; }
+            const myCourses = JSON.parse(assign.cursos_json); document.getElementById('countCursos').innerText = myCourses.length;
+            const { data: courses } = await sbClient.from('cursos').select('*').in('titulo', myCourses);
+            groupedModules = {}; courses.forEach(c => { if(c.tipo === "simulador") return; let m = c.modulo || "General"; if(!groupedModules[m]) groupedModules[m] = []; groupedModules[m].push(c); });
+            let modulesHtml = '';
+            for(let m in groupedModules) {
+                let totalC = groupedModules[m].length; let doneC = 0;
+                groupedModules[m].forEach(c => { if(myEvaluations.find(e => e.curso === c.titulo)) doneC++; });
+                let percent = totalC > 0 ? Math.round((doneC / totalC) * 100) : 0;
+                modulesHtml += `<div class="module-card" onclick="openModuleDetail('${m}')"><div class="module-banner"><i class="fas fa-folder-open"></i></div><div class="module-body"><div class="module-title-card">${m}</div><div class="module-meta">${totalC} Cursos</div><div class="progress-track"><div class="progress-fill" style="width:${percent}%"></div></div><div class="progress-text">${percent}% Completado</div></div></div>`;
+            }
+            document.getElementById('modulesGrid').innerHTML = modulesHtml;
+            renderSimulators(courses.filter(c => c.tipo === "simulador"));
+        }
+
+        function renderSimulators(sims) {
+            let container = document.getElementById('simListContainer'); if(sims.length === 0) { container.innerHTML = '<p>No hay simuladores.</p>'; return; }
+            let html = ''; sims.forEach(c => { html += `<div class="sim-card"><div class="sim-header-bg"><div class="sim-icon-box"><i class="fas fa-gamepad"></i></div></div><div class="sim-body"><div class="sim-title">${c.titulo}</div><div class="sim-desc">${c.descripcion || 'Entrenamiento.'}</div><button class="btn-sim-play" onclick="playSim('${encodeURIComponent(c.data_juego)}')"><i class="fas fa-play"></i> INICIAR SIMULACIÓN</button></div></div>`; }); container.innerHTML = html;
+        }
+
+        function openModuleDetail(moduleName) {
+            document.getElementById('modulesGrid').style.display = 'none';
+            document.getElementById('moduleDetailContainer').style.display = 'block';
+            document.getElementById('detailModuleTitle').innerText = moduleName;
+            let courses = groupedModules[moduleName];
+            let html = '';
+            courses.forEach(c => {
+                let courseEvals = myEvaluations.filter(e => e.curso === c.titulo);
+                let lastEval = courseEvals.length > 0 ? courseEvals[courseEvals.length - 1] : null;
+                let buttonHtml = `<button class="btn-start" onclick="launch('${c.id}', '${c.tipo}', '${c.video}', '${c.titulo}')">Acceder</button>`;
+                if (c.tipo === 'examen' && lastEval) {
+                    if (lastEval.retest_active === true) buttonHtml = `<button class="btn-retest" onclick="launch('${c.id}', '${c.tipo}', '${c.video}', '${c.titulo}', true)">🔄 Retest Disponible</button>`;
+                    else { let sum = courseEvals.reduce((a,b) => a + b.nota, 0); let avg = (sum / courseEvals.length).toFixed(1); buttonHtml = `<button class="btn-completed"><i class="fas fa-check-circle"></i> Completado (Prom: ${avg})</button>`; }
+                }
+                let thumb = c.tipo === 'examen' ? '<div style="font-size:3rem; color:#10b981"><i class="fas fa-clipboard-check"></i></div>' : '<div style="font-size:3rem; color:#4338ca"><i class="fas fa-play-circle"></i></div>';
+                if(c.tipo === 'video' && c.video) { let vidId = getYouTubeID(c.video); if(vidId) thumb = `<img src="https://img.youtube.com/vi/${vidId}/hqdefault.jpg" class="thumb-img">`; }
+                html += `<div class="course-card"><div class="thumb-wrapper">${thumb}<span class="type-badge">${c.tipo.toUpperCase()}</span></div><div class="card-info"><h3 class="card-title">${c.titulo}</h3>${buttonHtml}</div></div>`;
+            });
+            document.getElementById('coursesGrid').innerHTML = html;
+        }
+
+        function showModules() { document.getElementById('moduleDetailContainer').style.display = 'none'; document.getElementById('modulesGrid').style.display = 'grid'; }
+
+        // --- LANZADOR Y EXAMEN ---
+        async function launch(id, type, url, title, isRetest = false) {
+            currentCourse = title; document.getElementById('modalTitle').innerText = title;
+            let area = document.getElementById('playerArea'); document.getElementById('mainModal').style.display='flex';
+            const footer = document.getElementById('videoFooter'); const btn = document.getElementById('btnExamAction');
+            footer.style.display = 'none'; area.innerHTML = ''; area.className = 'modal-content-area';
+            let courseEvals = myEvaluations.filter(e => e.curso === title);
+            let lastEval = courseEvals.length > 0 ? courseEvals[courseEvals.length - 1] : null;
+
+            if (type === 'examen') {
+                if (lastEval && !lastEval.retest_active && !isRetest) { area.innerHTML = `<div style="text-align:center; padding:50px; color:white"><h2>Examen Completado</h2></div>`; return; }
+                area.innerHTML = `<div style="text-align:center; padding:50px; color:white"><h2>Evaluación Teórica</h2><p>10 minutos.</p></div>`;
+                footer.style.display = 'flex'; btn.className = 'btn-exam ready'; btn.innerHTML = 'Comenzar Ahora'; btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer'; btn.onclick = startExam;
+            } else if (type === 'video') {
+                footer.style.display = 'flex'; btn.disabled = true; btn.style.opacity = '0.5'; btn.style.cursor = 'not-allowed'; btn.classList.remove('ready');
+                let vidId = url.split('v=')[1]||url.split('/').pop();
+                area.innerHTML = `<div class="video-container"><div class="video-responsive"><iframe src="https://www.youtube.com/embed/${vidId}" allowfullscreen></iframe></div></div>`;
+                if(!lastEval || lastEval.retest_active || isRetest) {
+                    let timeLeft = 10; clearInterval(timerInterval);
+                    timerInterval = setInterval(() => { timeLeft--; btn.innerHTML = `<i class="fas fa-clock"></i> Espera ${timeLeft}s...`; if(timeLeft <= 0) { clearInterval(timerInterval); btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer'; btn.classList.add('ready'); btn.innerHTML = 'Realizar Examen'; btn.onclick = startExam; } }, 1000);
+                } else { btn.innerHTML = "Examen Completado"; }
+            } else if(type=='pdf') area.innerHTML = `<iframe width="100%" height="100%" src="${url}" style="background:white; width:100%; height:100%;"></iframe>`;
+        }
+
+        async function startExam() {
+            const area = document.getElementById('playerArea'); area.className = 'modal-content-area game-mode'; document.getElementById('videoFooter').style.display='none';
+            const {data:qs} = await sbClient.from('preguntas').select('*').eq('curso', currentCourse);
+            if(!qs || qs.length===0){ area.innerHTML='<h3>Sin preguntas.</h3>'; return; }
+            let h = `<div class="exam-container"><h2 style="margin-bottom:30px; color:#1e293b; text-align:center;">${currentCourse}</h2>`;
+            qs.forEach((q,i)=>{ h+=`<div class="exam-card"><div class="exam-question">${i+1}. ${q.pregunta}</div><div class="exam-options"><label class="exam-option"><input type="radio" name="q${q.id}" value="op1"> <span>${q.opcion1}</span></label><label class="exam-option"><input type="radio" name="q${q.id}" value="op2"> <span>${q.opcion2}</span></label><label class="exam-option"><input type="radio" name="q${q.id}" value="op3"> <span>${q.opcion3}</span></label></div></div>`; });
+            h+=`<button class="btn-start" style="width:100%; max-width:300px; display:block; margin:30px auto;" onclick="submitExam()">Enviar Respuestas</button></div>`;
+            area.innerHTML = h;
+        }
+
+        async function submitExam() {
+            const { data: qs } = await sbClient.from('preguntas').select('*').eq('curso', currentCourse);
+            let score = 0, total = 0, detalles = [];
+            qs.forEach((q, i) => {
+                total += 2; const sel = document.querySelector(`input[name="q${q.id}"]:checked`);
+                let st = "INCORRECTO", resp = "Sin respuesta";
+                if (sel) { resp = sel.nextElementSibling.textContent.trim(); if (sel.value === q.correcta) { score += 2; st = "CORRECTO"; } }
+                detalles.push(`[P${i+1}: ${q.pregunta.replace(/\|/g,"")} | R: ${resp.replace(/\|/g,"")} (${st})]`);
+            });
+            let final = Math.round((score / total) * 20);
+            await sbClient.from('evaluaciones').insert([{ usuario: user, curso: currentCourse, nota: final, grupo: userGroup, detalle: detalles.join(" ||| "), retest_active: false }]);
+            await sbClient.from('evaluaciones').update({retest_active: false}).eq('usuario', user).eq('curso', currentCourse).eq('retest_active', true);
+            const { data: ev } = await sbClient.from('evaluaciones').select('nota').eq('usuario', user);
+            let sum = ev.reduce((a,b)=>a+b.nota,0); let avg = (sum/ev.length).toFixed(1); await sbClient.from('usuarios').update({promedio:avg}).eq('usuario',user);
+            alert('Nota: '+final); location.reload();
+        }
+
+        // --- RESULTADOS ---
+        async function loadMyResults() {
+            const container = document.getElementById('resultsContainer'); container.innerHTML = '<p style="padding:20px; color:#666">Cargando...</p>';
+            const { data: evals } = await sbClient.from('evaluaciones').select('*').eq('usuario', user).order('created_at', {ascending:false});
+            if(!evals || evals.length === 0) { container.innerHTML = '<p style="padding:20px; color:#666; grid-column:1/-1; text-align:center">No hay resultados.</p>'; return; }
+            let grouped = {}; evals.forEach(e => { if(!grouped[e.curso]) grouped[e.curso] = []; grouped[e.curso].push(e); });
+            let html = '';
+            for (let curso in grouped) {
+                let attempts = grouped[curso]; let lastAttempt = attempts[0]; let sum = attempts.reduce((a,b)=>a+b.nota,0); let avg = (sum / attempts.length).toFixed(1); let isPass = avg >= 14; let statusClass = isPass ? 'pass' : 'fail'; let scoreColor = isPass ? 'text-pass' : 'text-fail'; let detailSafe = encodeURIComponent(lastAttempt.detalle || "");
+                html += `<div class="result-card ${statusClass}"><div class="res-info"><h4>${curso}</h4><div class="res-date"><i class="far fa-calendar-alt"></i> ${new Date(lastAttempt.created_at).toLocaleDateString()} (Intentos: ${attempts.length})</div><button class="btn-detail" onclick="showResultDetail('${detailSafe}', '${avg}', '${curso}')">Ver Corrección</button></div><div class="res-score"><h2 class="${scoreColor}">${avg}</h2><span class="${scoreColor}">${isPass ? 'APROBADO' : 'REPROBADO'}</span></div></div>`;
+            }
+            container.innerHTML = html;
+        }
+
+        function showResultDetail(detailEnc, score, title) {
+            let detailStr = decodeURIComponent(detailEnc); document.getElementById('modalTitle').innerText = "Resultados: " + title; const area = document.getElementById('playerArea'); document.getElementById('mainModal').style.display = 'flex'; document.getElementById('videoFooter').style.display = 'none'; area.className = 'modal-content-area game-mode';
+            if(!detailStr) { area.innerHTML = '<div style="text-align:center; padding:40px;">No hay detalles.</div>'; return; }
+            let items = detailStr.split(" ||| ");
+            let html = `<div style="max-width:800px; margin:0 auto; padding-bottom:30px;"><div style="text-align:center; margin-bottom:30px;"><h1 style="font-size:3rem;">${score}</h1><p>Nota Final</p></div><div class="res-detail-list">`;
+            items.forEach(item => {
+                let clean = item.replace('[', '').replace(']', ''); let isCorrect = clean.includes('(CORRECTO)'); let icon = isCorrect ? '<i class="fas fa-check"></i>' : '<i class="fas fa-times"></i>'; let iconClass = isCorrect ? 'res-correct' : 'res-incorrect';
+                let parts = clean.split("| R:"); let question = parts[0] || "Pregunta"; let answer = parts[1] ? parts[1].replace('(CORRECTO)', '').replace('(INCORRECTO)', '') : "-";
+                html += `<div class="res-item"><div class="${iconClass} res-icon">${icon}</div><div class="res-text"><h5>${question}</h5><div class="res-ans">Tu respuesta: <strong>${answer}</strong></div></div></div>`;
+            });
+            html += `</div></div>`; area.innerHTML = html;
+        }
+
+        // --- CERTIFICADOS ---
+        async function loadCerts() {
+            const c = document.getElementById('certGrid'); c.innerHTML = 'Cargando...';
+            const { data } = await sbClient.from('usuarios').select('certificados_json').eq('usuario', user).single();
+            let certs = []; try { certs = JSON.parse(data.certificados_json || '[]'); } catch(e){}
+            if(certs.length === 0) { c.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:#94a3b8">Aún no tienes certificados aprobados por el administrador.</p>'; return; }
+            let h = '';
+            certs.forEach(title => {
+                h += `<div class="cert-card" onclick="genPDF('${title}')"><div class="cert-top"><i class="fas fa-award"></i></div><div class="cert-body"><div style="font-weight:700; font-size:1.1rem">${title}</div><div style="font-size:0.8rem; color:#64748b">Certificado Oficial</div><button class="btn-download"><i class="fas fa-download"></i> Descargar PDF</button></div></div>`;
+            });
+            c.innerHTML = h;
+        }
+
+        async function genPDF(title) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'landscape', format: 'a4' });
+            // Intentar cargar la imagen de fondo
+            const img = new Image();
+            img.src = 'certificado_bg.png'; // ASEGÚRATE DE QUE ESTE ARCHIVO ESTÉ EN LA CARPETA
+            
+            img.onload = function() {
+                doc.addImage(img, 'PNG', 0, 0, 297, 210);
+                const w = doc.internal.pageSize.getWidth();
+                
+                doc.setFont("times", "italic"); doc.setFontSize(40); doc.setTextColor(0, 0, 0); 
+                doc.text(user, w / 2, 105, { align: "center" });
+
+                doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(67, 56, 202); 
+                doc.text("ESPECIALISTA EN " + title.toUpperCase(), w / 2, 155, { align: "center" });
+
+                doc.setFont("helvetica", "normal"); doc.setFontSize(14); doc.setTextColor(0, 0, 0);
+                doc.text("Hugo Tuesta Villar", w / 2, 185, { align: "center" });
+                doc.setFontSize(10); doc.text("Gerente General", w / 2, 190, { align: "center" });
+                
+                doc.save(`Certificado_${title}.pdf`);
+            };
+            
+            // Si falla la imagen, generar certificado simple
+            img.onerror = function() {
+                alert("No se encontró 'certificado_bg.png'. Se generará una versión simple.");
+                doc.setTextColor(0,0,0); doc.setFontSize(30); doc.text("CERTIFICADO", 148, 50, {align:"center"});
+                doc.setFontSize(20); doc.text("Otorgado a:", 148, 80, {align:"center"});
+                doc.setFontSize(40); doc.text(user, 148, 110, {align:"center"});
+                doc.setFontSize(16); doc.text("Por completar: " + title, 148, 140, {align:"center"});
+                doc.save(`Certificado_${title}.pdf`);
+            }
+        }
+
+        // --- SIMULADORES, RANKING, DUELOS ---
+        function playSim(json){ simData=JSON.parse(decodeURIComponent(json)); simStep=0; document.getElementById('modalPhone').style.display='flex'; renderSim(); }
+        function renderSim(){ let s=simData[simStep]; if(!s){setTimeout(()=>{alert("Fin");closeModal()},500);return;} document.getElementById('simContent').innerHTML = `<div class="client-msg">${s.cliente}</div>`; let h=''; s.opciones.forEach((o,i)=>h+=`<div class="option-btn" onclick="checkSim(${i})">${o}</div>`); document.getElementById('simOpts').innerHTML=h; }
+        function checkSim(i){ let s=simData[simStep]; if(i==s.correcta){ simStep++; renderSim(); } else alert("Incorrecto"); }
+        async function loadRanking(){ const {data} = await sbClient.from('usuarios').select('usuario, promedio, etiqueta').eq('etiqueta',userGroup).order('promedio',{ascending:false}).limit(5); let h=''; data.forEach((u,i)=>h+=`<div class="rank-row ${i===0?'top-1':(i===1?'top-2':(i===2?'top-3':''))} ${u.usuario===user?'me':''}"><div class="rank-pos">${i+1}</div><div class="rank-avatar-img">${u.usuario.substring(0,2).toUpperCase()}</div><div class="rank-info-box"><div class="rank-user-name">${u.usuario} ${u.usuario===user?'(Tú)':''}</div><div class="rank-user-group">${u.etiqueta||'General'}</div></div><div class="rank-points-badge">${u.promedio}</div></div>`); document.getElementById('rankingContainer').innerHTML=h; }
+        async function createDuel(){ let op=prompt("Oponente:"); if(op) { await sbClient.from('duelos').insert([{retador:user, oponente:op, estado:'PENDIENTE'}]); alert('Enviado'); loadDuels(); } }
+        async function loadDuels(){ const {data}=await sbClient.from('duelos').select('*').or(`retador.eq.${user},oponente.eq.${user}`).order('created_at',{ascending:false}); let h=''; data.forEach(d=>h+=`<div style="padding:15px;background:white;margin-bottom:10px;border-radius:10px;box-shadow:0 2px 5px rgba(0,0,0,0.05)"><b>${d.retador} vs ${d.oponente}</b><br><small>${d.estado}</small></div>`); document.getElementById('duelsList').innerHTML=h; }
+        function getYouTubeID(url) { if(!url) return null; const r = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/; const m = url.match(r); return (m && m[2].length === 11) ? m[2] : null; }
+    </script>
+</body>
+</html>

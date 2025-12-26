@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Geincos Academy - Acceso</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* TU DISEÑO ORIGINAL INTACTO */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        :root { --primary: #6366f1; --secondary: #8b5cf6; --bg-gradient: linear-gradient(135deg, #4f46e5, #7c3aed, #9333ea); --white: #ffffff; --text-dark: #1e1b4b; }
+        body { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: var(--bg-gradient); background-size: 400% 400%; animation: gradientBG 10s ease infinite; }
+        @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        .container { position: relative; width: 400px; background: var(--white); border-radius: 25px; box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25); padding: 45px; overflow: hidden; transition: height 0.3s ease; }
+        .logo-login { text-align: center; margin-bottom: 20px; } .logo-login img { width: 170px; height: auto; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }
+        h2 { text-align: center; color: var(--text-dark); margin-bottom: 30px; font-size: 2rem; font-weight: 800; letter-spacing: -1px;}
+        .role-switch { display: flex; justify-content: center; margin-bottom: 25px; background: #f3f4f6; border-radius: 50px; padding: 5px; position: relative; transition: all 0.3s ease;}
+        .role-option { flex: 1; text-align: center; padding: 12px; cursor: pointer; color: #6b7280; z-index: 2; transition: color 0.3s; font-weight: 700; font-size: 0.9rem; }
+        .role-option.active { color: var(--white); }
+        .slider { position: absolute; top: 5px; left: 5px; width: 50%; height: calc(100% - 10px); background: linear-gradient(90deg, var(--primary), var(--secondary)); border-radius: 50px; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4); }
+        .input-box { position: relative; margin-bottom: 25px; }
+        .input-box input { width: 100%; padding: 12px 10px 12px 40px; font-size: 16px; color: #333; margin-bottom: 5px; border: 2px solid #e5e7eb; border-radius: 12px; outline: none; background: #f9fafb; transition: 0.3s; }
+        .input-box input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); }
+        .input-box label { position: absolute; top: 12px; left: 40px; font-size: 15px; color: #9ca3af; pointer-events: none; transition: .3s; }
+        .input-box input:focus ~ label, .input-box input:valid ~ label { top: -10px; left: 10px; color: var(--primary); font-size: 12px; font-weight: 700; background: white; padding: 0 5px; }
+        .input-box i { position: absolute; top: 15px; left: 12px; font-size: 1.1rem; color: #9ca3af; transition: 0.3s; } .input-box input:focus ~ i { color: var(--primary); }
+        .btn-container { display: flex; flex-direction: column; gap: 15px; margin-top: 10px; }
+        button { width: 100%; padding: 15px; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 16px; transition: 0.3s; }
+        .btn-primary { background: linear-gradient(90deg, var(--primary), var(--secondary)); color: var(--white); border: none; box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 15px 25px rgba(99, 102, 241, 0.4); }
+        .btn-secondary { background: transparent; color: var(--primary); border: 2px solid var(--primary); } .btn-secondary:hover { background: #eef2ff; }
+        .error-msg { color: #ef4444; text-align: center; margin-top: 15px; font-size: 14px; display: none; background: #fee2e2; padding: 10px; border-radius: 10px; font-weight: 500; }
+        .hidden { display: none !important; } .invisible { opacity: 0; pointer-events: none; margin: 0; height: 0; padding: 0; overflow: hidden; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo-login"><i class="fas fa-graduation-cap" style="font-size: 80px; color: var(--primary);"></i></div>
+        <h2 id="formTitle">Bienvenido</h2>
+        <div class="role-switch" id="roleSwitch">
+            <div class="slider" id="slider"></div>
+            <div class="role-option active" onclick="setRole('admin')">Admin</div>
+            <div class="role-option" onclick="setRole('asesor')">Asesor</div>
+        </div>
+        <form id="authForm">
+            <div class="input-box hidden" id="emailField"><input type="text" id="email" name="Correo" autocomplete="off" style="text-transform: capitalize;"><label>Nombres Completos</label><i class="fas fa-signature"></i></div>
+            <div class="input-box hidden" id="dniField"><input type="text" id="dni" name="DNI" autocomplete="off"><label>DNI / Identificación</label><i class="fas fa-id-card"></i></div>
+            <div class="input-box"><input type="text" id="username" name="Usuario" required autocomplete="off"><label>Usuario</label><i class="fas fa-user"></i></div>
+            <div class="input-box"><input type="password" id="password" name="Contrasena" required><label>Contraseña</label><i class="fas fa-lock"></i></div>
+            <input type="hidden" id="roleInput" name="Rol" value="admin">
+            <div class="btn-container"><button type="submit" class="btn-primary" id="mainBtn">Ingresar</button><button type="button" class="btn-secondary" id="toggleBtn" onclick="toggleMode()">¿No tienes cuenta? Regístrate</button></div>
+            <p class="error-msg" id="errorMsg"></p>
+        </form>
+    </div>
+    <script>
+        // --- CONEXIÓN A SUPABASE ---
+        const SB_URL = 'https://xgvfcmadsprjyljtpooo.supabase.co';
+        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhndmZjbWFkc3ByanlsanRwb29vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY1ODMxNjAsImV4cCI6MjA4MjE1OTE2MH0.XYBbKFE17PfyYMn2SNL5UJrCQmDRbimTQO0jpbX1Zd0';
+        const sbClient = supabase.createClient(SB_URL, SB_KEY);
+        
+        // --- LÓGICA ORIGINAL ADAPTADA ---
+        let currentRole = 'admin'; let isLoginMode = true;
+        const form = document.getElementById('authForm'); const roleInput = document.getElementById('roleInput'); const errorMsg = document.getElementById('errorMsg');
+        
+        function setRole(role) { 
+            currentRole = role; roleInput.value = role; const slider = document.getElementById('slider'); const options = document.querySelectorAll('.role-option'); 
+            if (role === 'admin') { slider.style.transform = 'translateX(0%)'; options[0].classList.add('active'); options[1].classList.remove('active'); } 
+            else { slider.style.transform = 'translateX(100%)'; options[1].classList.add('active'); options[0].classList.remove('active'); } 
+        }
+        
+        function toggleMode() { 
+            isLoginMode = !isLoginMode; 
+            const title = document.getElementById('formTitle'); const emailField = document.getElementById('emailField'); const dniField = document.getElementById('dniField'); const mainBtn = document.getElementById('mainBtn'); const toggleBtn = document.getElementById('toggleBtn'); const roleSwitch = document.getElementById('roleSwitch');
+            errorMsg.style.display = 'none'; form.reset(); 
+            if (isLoginMode) { 
+                title.innerText = "Bienvenido"; emailField.classList.add('hidden'); dniField.classList.add('hidden'); document.getElementById('email').required = false; document.getElementById('dni').required = false; mainBtn.innerText = "Ingresar"; toggleBtn.innerText = "¿No tienes cuenta? Regístrate"; roleSwitch.classList.remove('invisible'); roleInput.value = currentRole; setRole(currentRole);
+            } else { 
+                title.innerText = "Crear Cuenta"; emailField.classList.remove('hidden'); dniField.classList.remove('hidden'); document.getElementById('email').required = true; document.getElementById('dni').required = true; mainBtn.innerText = "Registrar Usuario"; toggleBtn.innerText = "Ya tengo cuenta. Iniciar Sesión"; roleSwitch.classList.add('invisible'); roleInput.value = 'asesor'; 
+            } 
+        }
+
+        form.addEventListener('submit', async e => { 
+            e.preventDefault(); 
+            const btn = document.getElementById('mainBtn'); 
+            const originalText = btn.innerText; 
+            const usuarioVal = document.getElementById('username').value.trim();
+            const passVal = document.getElementById('password').value.trim();
+            
+            btn.innerText = "Procesando..."; btn.disabled = true; errorMsg.style.display = 'none'; 
+
+            try {
+                if(isLoginMode) {
+                    // LOGIN CON SUPABASE
+                    const { data, error } = await sbClient
+                        .from('usuarios')
+                        .select('*')
+                        .eq('usuario', usuarioVal)
+                        .eq('password', passVal)
+                        .maybeSingle();
+
+                    if(error) throw error;
+                    if(!data) throw new Error("Usuario o contraseña incorrectos.");
+                    if(data.rol !== currentRole) throw new Error(`Este usuario no es ${currentRole.toUpperCase()}.`);
+
+                    // Guardar sesión
+                    localStorage.setItem('usuarioActual', data.usuario);
+                    localStorage.setItem('usuarioRol', data.rol);
+                    localStorage.setItem('usuarioGrupo', data.etiqueta || 'General');
+
+                    window.location.href = currentRole === 'admin' ? 'panel-admin.html' : 'panel-usuario.html';
+
+                } else {
+                    // REGISTRO CON SUPABASE
+                    const nombreVal = document.getElementById('email').value.trim(); // Campo nombre
+                    const dniVal = document.getElementById('dni').value.trim();
+
+                    // Verificar duplicado
+                    const { data: exists } = await sbClient.from('usuarios').select('id').eq('usuario', usuarioVal).maybeSingle();
+                    if(exists) throw new Error("El usuario ya existe.");
+
+                    const { error } = await sbClient.from('usuarios').insert([{
+                        usuario: usuarioVal,
+                        password: passVal,
+                        rol: 'asesor',
+                        correo: nombreVal,
+                        dni: dniVal,
+                        etiqueta: 'General',
+                        promedio: 0
+                    }]);
+
+                    if(error) throw error;
+                    alert("¡Registro Exitoso! Inicia sesión.");
+                    toggleMode();
+                }
+            } catch(error) {
+                console.error(error);
+                errorMsg.innerText = error.message || "Error de conexión."; 
+                errorMsg.style.display = 'block'; 
+                document.querySelector('.container').animate([{ transform: 'translateX(0px)' }, { transform: 'translateX(10px)' }, { transform: 'translateX(-10px)' }, { transform: 'translateX(0px)' }], { duration: 300 }); 
+            } finally {
+                btn.innerText = originalText; btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
